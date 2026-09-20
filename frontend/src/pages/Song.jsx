@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
+import API_URL from "../api";
 
 function Song() {
     const { youtubeVideoId } = useParams();
@@ -71,7 +72,7 @@ function Song() {
             }
 
             const saveResponse = await axios.post(
-                "http://localhost:5000/api/songs",
+                `${API_URL}/api/songs`,
                 {
                     youtubeVideoId: currentSong.youtubeVideoId,
                     title: currentSong.title,
@@ -116,13 +117,13 @@ function Song() {
             const token = localStorage.getItem("token");
 
             const response = await axios.get(
-                `http://localhost:5000/api/likes/${id}/count`
+                `${API_URL}/api/likes/${id}/count`
             );
 
             setLikeCount(response.data.likes || 0);
 
             const likedResponse = await axios.get(
-                `http://localhost:5000/api/likes/${id}/check`,
+                `${API_URL}/api/likes/${id}/check`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -144,16 +145,16 @@ function Song() {
                 reviewsResponse,
             ] = await Promise.all([
                 axios.get(
-                    `http://localhost:5000/api/ratings/song/${id}/average`
+                    `${API_URL}/api/ratings/song/${id}/average`
                 ),
 
                 axios.get(
-                    "http://localhost:5000/api/ratings/my",
+                    `${API_URL}/api/ratings/my`,
                     authConfig
                 ),
 
                 axios.get(
-                    `http://localhost:5000/api/reviews/song/${id}`
+                    `${API_URL}/api/reviews/song/${id}`
                 ),
             ]);
 
@@ -199,7 +200,7 @@ function Song() {
             setMyRating(rating);
 
             const response = await axios.post(
-                "http://localhost:5000/api/ratings",
+                `${API_URL}/api/ratings`,
                 {
                     song: songId,
                     rating,
@@ -217,7 +218,7 @@ function Song() {
             } else {
                 const averageResponse =
                     await axios.get(
-                        `http://localhost:5000/api/ratings/song/${songId}/average`
+                        `${API_URL}/api/ratings/song/${songId}/average`
                     );
 
                 setAverageRating(
@@ -250,7 +251,7 @@ function Song() {
 
             if (liked) {
                 likeResponse = await axios.delete(
-                    `http://localhost:5000/api/likes/${songId}`,
+                    `${API_URL}/api/likes/${songId}`,
                     authConfig
                 );
 
@@ -258,7 +259,7 @@ function Song() {
 
             } else {
                 likeResponse = await axios.post(
-                    `http://localhost:5000/api/likes/${songId}`,
+                    `${API_URL}/api/likes/${songId}`,
                     {},
                     authConfig
                 );
@@ -299,7 +300,7 @@ function Song() {
             setError("");
 
             const response = await axios.post(
-                "http://localhost:5000/api/reviews",
+                `${API_URL}/api/reviews`,
                 {
                     song: songId,
                     text,

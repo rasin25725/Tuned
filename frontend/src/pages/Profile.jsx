@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import API_URL from "../api";
 import {
     ArrowLeft,
     Heart,
@@ -50,22 +51,10 @@ function Profile() {
 
             const [profileResponse, ratingsResponse, reviewsResponse, likesResponse] =
                 await Promise.all([
-                    axios.get(
-                        "http://localhost:5000/api/profile",
-                        { headers }
-                    ),
-                    axios.get(
-                        "http://localhost:5000/api/ratings/my",
-                        { headers }
-                    ),
-                    axios.get(
-                        "http://localhost:5000/api/reviews/my",
-                        { headers }
-                    ),
-                    axios.get(
-                        "http://localhost:5000/api/likes/my",
-                        { headers }
-                    ),
+                    axios.get(`${API_URL}/api/profile`, { headers }),
+                    axios.get(`${API_URL}/api/ratings/my`, { headers }),
+                    axios.get(`${API_URL}/api/reviews/my`, { headers }),
+                    axios.get(`${API_URL}/api/likes/my`, { headers }),
                 ]);
 
             const profileData = profileResponse.data;

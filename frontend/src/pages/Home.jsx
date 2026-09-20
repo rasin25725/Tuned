@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import API_URL from "../api";
 import {
     Search,
     Music2,
@@ -86,17 +87,14 @@ function Home() {
 
             console.log("SENDING REQUEST TO BACKEND...");
 
-            const response = await axios.get(
-                "http://localhost:5000/api/youtube/search",
-                {
-                    params: {
-                        q: query,
-                    },
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+            const response = await axios.get(`${API_URL}/api/youtube/search`, {
+                params: {
+                    q: query,
+                },
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
 
             console.log("BACKEND RESPONSE:", response.data);
 
@@ -152,14 +150,11 @@ function Home() {
             if (!token) return;
 
             try {
-                const response = await axios.get(
-                    "http://localhost:5000/api/likes/my",
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
+                const response = await axios.get(`${API_URL}/api/likes/my`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
 
                 const likes = Array.isArray(response.data)
                     ? response.data
@@ -205,7 +200,7 @@ function Home() {
                 entries.map(async ([youtubeVideoId, mongoSongId]) => {
                     try {
                         const response = await axios.get(
-                            `http://localhost:5000/api/likes/${mongoSongId}/count`
+                            `${API_URL}/api/likes/${mongoSongId}/count`
                         );
 
                         return {
@@ -262,7 +257,7 @@ function Home() {
             // Save song first if it doesn't exist in MongoDB
             if (!mongoSongId) {
                 const saveResponse = await axios.post(
-                    "http://localhost:5000/api/songs",
+                    `${API_URL}/api/songs`,
                     {
                         youtubeVideoId: song.youtubeVideoId,
                         title: song.title,
@@ -292,7 +287,7 @@ function Home() {
             // UNLIKE
             if (likedSongs[youtubeVideoId]) {
                 likeResponse = await axios.delete(
-                    `http://localhost:5000/api/likes/${mongoSongId}`,
+                    `${API_URL}/api/likes/${mongoSongId}`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -309,7 +304,7 @@ function Home() {
             // LIKE
             else {
                 likeResponse = await axios.post(
-                    `http://localhost:5000/api/likes/${mongoSongId}`,
+                    `${API_URL}/api/likes/${mongoSongId}`,
                     {},
                     {
                         headers: {

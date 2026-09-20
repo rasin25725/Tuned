@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+import API_URL from "../api";
+
 import {
     Music2,
     Users,
@@ -48,18 +50,9 @@ function Admin() {
                 usersResponse,
                 songsResponse,
             ] = await Promise.all([
-                axios.get(
-                    "http://localhost:5000/api/admin/stats",
-                    { headers }
-                ),
-                axios.get(
-                    "http://localhost:5000/api/admin/users",
-                    { headers }
-                ),
-                axios.get(
-                    "http://localhost:5000/api/admin/songs",
-                    { headers }
-                ),
+                axios.get(`${API_URL}/api/admin/stats`, { headers }),
+                axios.get(`${API_URL}/api/admin/users`, { headers }),
+                axios.get(`${API_URL}/api/admin/songs`, { headers }),
             ]);
 
             setStats(statsResponse.data);
@@ -113,14 +106,11 @@ function Admin() {
         try {
             setDeleting(songId);
 
-            await axios.delete(
-                `http://localhost:5000/api/songs/${songId}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+            await axios.delete(`${API_URL}/api/songs/${songId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
 
             setSongs((previous) =>
                 previous.filter(

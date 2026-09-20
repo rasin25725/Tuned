@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import API_URL from "../api";
 import {
     ArrowLeft,
     Heart,
@@ -34,14 +35,11 @@ function Feed() {
             setLoading(true);
             setError("");
 
-            const response = await axios.get(
-                "http://localhost:5000/api/feed",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+            const response = await axios.get(`${API_URL}/api/feed`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
 
             setActivities(
                 Array.isArray(response.data)

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, Music2 } from "lucide-react";
 import axios from "axios";
+import API_URL from "../api";
 
 function Login() {
     const navigate = useNavigate();
@@ -25,13 +26,10 @@ function Login() {
             setLoading(true);
             setError("");
 
-            const response = await axios.post(
-                "http://localhost:5000/api/login",
-                {
-                    email,
-                    password,
-                }
-            );
+            const response = await axios.post(`${API_URL}/api/login`, {
+                email,
+                password,
+            });
 
             const { token, user } = response.data;
 
