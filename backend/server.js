@@ -49,6 +49,8 @@ const DUMMY_HASH = bcrypt.hashSync("songshare-dummy-password", BCRYPT_ROUNDS);
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 // If deployed behind a proxy (Nginx, Render, Railway, Heroku...), uncomment
 // so rate limiting sees the real client IP:
 // app.set("trust proxy", 1);
