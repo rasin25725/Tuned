@@ -375,6 +375,37 @@ const ytCache = new Map();
 const YT_CACHE_TTL = 10 * 60 * 1000;
 const YT_CACHE_MAX = 200;
 
+// Max song length we accept (5 minutes)
+const MAX_DURATION_SECONDS = 5 * 60;
+
+// "PT3M32S" -> 212. Returns null if the string doesn't parse.
+function parseIsoDuration(iso) {
+    const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(iso || "");
+    if (!match) return null;
+
+    const hours = parseInt(match[1] || "0", 10);
+    const minutes = parseInt(match[2] || "0", 10);
+    const seconds = parseInt(match[3] || "0", 10);
+
+    return hours * 3600 + minutes * 60 + seconds;
+}
+
+// Strips "(Official Video)", "[Lyrics]", "official audio", punctuation, etc.
+// so that different uploads of the same song collapse to the same key.
+// Heuristic, not exact - occasional over/under-merge is expected and fine here.
+function normalizeTitle(title) {
+    return (title || "")
+        .toLowerCase()
+        .replace(/[([][^)\]]*[)\]]/g, " ") // (...) and [...]
+        .replace(
+            /\b(official\s*(music\s*)?video|official\s*audio|lyrics?\s*video|audio|visualizer|explicit|clean|remaster(ed)?|hd|4k)\b/g,
+            " "
+        )
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
 app.get(
     "/api/youtube/search",
     authMiddleware,
@@ -431,7 +462,7 @@ app.get(
             });
         }
 
-        const songs = (response.data.items || [])
+        const rawResults = (response.data.items || [])
             .filter((item) => item.id && item.id.videoId && item.snippet)
             .map((item) => ({
                 youtubeVideoId: item.id.videoId,
@@ -443,6 +474,95 @@ app.get(
                     item.snippet.thumbnails?.default?.url ||
                     ""
             }));
+
+        let songs = rawResults;
+
+        if (rawResults.length) {
+            try {
+                const statsResponse = await axios.get(
+                    "https://www.googleapis.com/youtube/v3/videos",
+                    {
+                        timeout: 8000,
+                        params: {
+                            part: "contentDetails,statistics",
+                            id: rawResults
+                                .map((r) => r.youtubeVideoId)
+                                .join(","),
+                            key: process.env.YOUTUBE_API_KEY
+                        }
+                    }
+                );
+
+                const statsById = new Map(
+                    (statsResponse.data.items || []).map((v) => [
+                        v.id,
+                        {
+                            duration: parseIsoDuration(
+                                v.contentDetails?.duration
+                            ),
+                            views: parseInt(
+                                v.statistics?.viewCount || "0",
+                                10
+                            )
+                        }
+                    ])
+                );
+
+                // Attach stats, drop anything missing/unembeddable/too long
+                const enriched = rawResults
+                    .map((r) => ({
+                        ...r,
+                        ...(statsById.get(r.youtubeVideoId) || {
+                            duration: null,
+                            views: 0
+                        })
+                    }))
+                    .filter(
+                        (r) =>
+                            r.duration !== null &&
+                            r.duration <= MAX_DURATION_SECONDS
+                    );
+
+                // Collapse same-song duplicates, keeping the highest view count
+                // and the earliest position among the group
+                const dedupedByKey = new Map();
+                for (const item of enriched) {
+                    const key =
+                        normalizeTitle(item.title) || item.youtubeVideoId;
+                    const existing = dedupedByKey.get(key);
+                    if (!existing || item.views > existing.views) {
+                        dedupedByKey.set(key, item);
+                    }
+                }
+
+                // Preserve original relevance order
+                const kept = new Set(
+                    [...dedupedByKey.values()].map((v) => v.youtubeVideoId)
+                );
+                songs = enriched
+                    .filter((r) => kept.has(r.youtubeVideoId))
+                    .filter(
+                        (r, i, arr) =>
+                            arr.findIndex(
+                                (x) => x.youtubeVideoId === r.youtubeVideoId
+                            ) === i
+                    )
+                    .map(({ youtubeVideoId, title, channel, thumbnail }) => ({
+                        youtubeVideoId,
+                        title,
+                        channel,
+                        thumbnail
+                    }));
+            } catch (error) {
+                // Quota for search.list is already spent - degrade to
+                // unfiltered results instead of failing the whole search
+                console.error(
+                    "YouTube videos.list error:",
+                    error.response?.data?.error?.message || error.message
+                );
+                songs = rawResults;
+            }
+        }
 
         if (ytCache.size >= YT_CACHE_MAX) {
             ytCache.delete(ytCache.keys().next().value);
